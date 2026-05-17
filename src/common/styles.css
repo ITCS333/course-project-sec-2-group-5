@@ -1,1 +1,149 @@
-/* CSS Styles */
+/* Global Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    color: #222;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+
+header {
+    margin-bottom: 30px;
+}
+
+
+h1 {
+    color: #111;
+    margin-bottom: 10px;
+}
+
+
+h2 {
+    margin-bottom: 15px;
+    color: #222;
+}
+
+
+h3 {
+    margin-bottom: 10px;
+}
+
+
+main {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+
+/* Sections */
+
+section,
+article,
+form,
+fieldset {
+    background-color: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+
+/* Form Elements */
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+
+input,
+textarea,
+button {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+
+textarea {
+    resize: vertical;
+}
+
+
+/* Buttons */
+
+button {
+    background-color: #2563eb;
+    color: white;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+
+button:hover {
+    background-color: #1d4ed8;
+}
+
+
+/* Tables */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+}
+
+
+th,
+td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+
+
+th {
+    background-color: #2563eb;
+    color: white;
+}
+
+
+/* Links */
+
+a {
+    color: #2563eb;
+    text-decoration: none;
+}
+
+
+a:hover {
+    text-decoration: underline;
+}
+
+
+/* Comments */
+
+#comment-list article {
+    border-left: 4px solid #2563eb;
+}
+
+
+footer {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #555;
+}
