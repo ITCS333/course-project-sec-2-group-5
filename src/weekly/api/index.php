@@ -191,8 +191,8 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
 
     $action    = $_GET['action']     ?? null;
-    $commentId = $_GET['comment_id'] ?? null;
-    $weekId    = $_GET['id']         ?? null;
+    $id        = $_GET['id']         ?? null;
+    $commentId = $_GET['comment_id'] ?? $id ?? null;
 
     if ($action === 'delete_comment') {
 
@@ -212,18 +212,18 @@ if ($method === 'DELETE') {
         sendJson(['success' => true]);
     }
 
-    if (!$weekId) {
+    if (!$id) {
         sendJson(['success' => false, 'message' => 'Missing id'], 400);
     }
 
     $checkStmt = $db->prepare("SELECT id FROM weeks WHERE id = ?");
-    $checkStmt->execute([$weekId]);
+    $checkStmt->execute([$id]);
     if (!$checkStmt->fetch()) {
         sendJson(['success' => false, 'message' => 'Week not found'], 404);
     }
 
     $stmt = $db->prepare("DELETE FROM weeks WHERE id = ?");
-    $stmt->execute([$weekId]);
+    $stmt->execute([$id]);
 
     sendJson(['success' => true]);
 }
