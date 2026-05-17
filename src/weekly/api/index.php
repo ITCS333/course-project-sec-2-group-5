@@ -424,10 +424,28 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
 
     // Delete Comment
-    if (isset($_GET['comment_id'])) {
+    if (
+        isset($_GET['comment_id']) ||
+        (
+            isset($_GET['action']) &&
+            $_GET['action'] === 'delete_comment'
+        )
+    ) {
 
         $commentId =
-            $_GET['comment_id'];
+            $_GET['comment_id']
+            ?? $_GET['id']
+            ?? null;
+
+
+        if (!$commentId) {
+
+            sendJson([
+                'success' => false,
+                'message' => 'Missing comment id'
+            ], 400);
+        }
+
 
         $checkStmt = $db->prepare("
             SELECT id
