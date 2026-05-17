@@ -8,534 +8,224 @@ $db = getDBConnection();
 
 $method = $_SERVER['REQUEST_METHOD'];
 
-
-// ============================================================
-// Helper Function
-// ============================================================
-
 function sendJson($data, $status = 200)
 {
     http_response_code($status);
-
     echo json_encode($data);
-
     exit;
 }
 
-
-// ============================================================
-// GET ALL WEEKS
-// GET SINGLE WEEK
-// GET COMMENTS
-// ============================================================
-
 if ($method === 'GET') {
 
-    // Get comments
-    if (
-        isset($_GET['action']) &&
-        $_GET['action'] === 'comments'
-    ) {
+    if (isset($_GET['action']) && $_GET['action'] === 'comments') {
 
         $weekId = $_GET['week_id'] ?? null;
 
         if (!$weekId) {
-
-            sendJson([
-                'success' => false,
-                'message' => 'Missing week_id'
-            ], 400);
+            sendJson(['success' => false, 'message' => 'Missing week_id'], 400);
         }
 
         $stmt = $db->prepare("
-            SELECT
-                id,
-                week_id,
-                author,
-                text,
-                created_at
+            SELECT id, week_id, author, text, created_at
             FROM comments_week
             WHERE week_id = ?
             ORDER BY created_at ASC
         ");
-
         $stmt->execute([$weekId]);
-
         $comments = $stmt->fetchAll();
 
-        sendJson([
-            'success' => true,
-            'data' => $comments
-        ]);
+        sendJson(['success' => true, 'data' => $comments]);
     }
 
-
-    // Get single week
     if (isset($_GET['id'])) {
 
         $id = $_GET['id'];
 
         $stmt = $db->prepare("
-            SELECT
-                id,
-                title,
-                start_date,
-                description,
-                links,
-                created_at
+            SELECT id, title, start_date, description, links, created_at
             FROM weeks
             WHERE id = ?
         ");
-
         $stmt->execute([$id]);
-
         $week = $stmt->fetch();
 
         if (!$week) {
-
-            sendJson([
-                'success' => false,
-                'message' => 'Week not found'
-            ], 404);
+            sendJson(['success' => false, 'message' => 'Week not found'], 404);
         }
 
-        $week['links'] =
-            json_decode($week['links'], true);
+        $week['links'] = json_decode($week['links'], true) ?? [];
 
-        sendJson([
-            'success' => true,
-            'data' => $week
-        ]);
+        sendJson(['success' => true, 'data' => $week]);
     }
 
-
-    // Get all weeks
-    $query = "
-        SELECT
-            id,
-            title,
-            start_date,
-            description,
-            links,
-            created_at
-        FROM weeks
-    ";
-
+    $query = "SELECT id, title, start_date, description, links, created_at FROM weeks";
     $params = [];
 
-
-    // Search
     if (!empty($_GET['search'])) {
-
-        $query .= "
-            WHERE title LIKE ?
-            OR description LIKE ?
-        ";
-
-        $search =
-            '%' . $_GET['search'] . '%';
-
+        $query .= " WHERE title LIKE ? OR description LIKE ?";
+        $search = '%' . $_GET['search'] . '%';
         $params[] = $search;
         $params[] = $search;
     }
 
-
-    // Sort
     $sort = $_GET['sort'] ?? 'start_date';
-
-    $allowedSorts = [
-        'title',
-        'start_date'
-    ];
-
+    $allowedSorts = ['title', 'start_date'];
     if (!in_array($sort, $allowedSorts)) {
         $sort = 'start_date';
     }
 
-    $order = strtolower(
-        $_GET['order'] ?? 'asc'
-    );
-
+    $order = strtolower($_GET['order'] ?? 'asc');
     if (!in_array($order, ['asc', 'desc'])) {
         $order = 'asc';
     }
 
     $query .= " ORDER BY {$sort} {$order}";
 
-
     $stmt = $db->prepare($query);
-
     $stmt->execute($params);
-
     $weeks = $stmt->fetchAll();
 
-
     foreach ($weeks as &$week) {
-
-        $week['links'] =
-            json_decode($week['links'], true);
+        $week['links'] = json_decode($week['links'], true) ?? [];
     }
 
-    sendJson([
-        'success' => true,
-        'data' => $weeks
-    ]);
+    sendJson(['success' => true, 'data' => $weeks]);
 }
-
-
-// ============================================================
-// CREATE WEEK
-// CREATE COMMENT
-// ============================================================
 
 if ($method === 'POST') {
 
-    $input = json_decode(
-        file_get_contents('php://input'),
-        true
-    );
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
+    if (isset($_GET['action']) && $_GET['action'] === 'comment') {
 
-    // Create Comment
-    if (
-        isset($_GET['action']) &&
-        $_GET['action'] === 'comment'
-    ) {
-
-        $weekId =
-            $input['week_id'] ?? null;
-
-        $author =
-            trim($input['author'] ?? '');
-
-        $text =
-            trim($input['text'] ?? '');
-
+        $weekId = $input['week_id'] ?? null;
+        $author = trim($input['author'] ?? '');
+        $text   = trim($input['text'] ?? '');
 
         if (!$weekId || !$author || !$text) {
-
-            sendJson([
-                'success' => false,
-                'message' => 'Missing required fields'
-            ], 400);
+            sendJson(['success' => false, 'message' => 'Missing required fields'], 400);
         }
 
-
-        $checkStmt = $db->prepare("
-            SELECT id
-            FROM weeks
-            WHERE id = ?
-        ");
-
+        $checkStmt = $db->prepare("SELECT id FROM weeks WHERE id = ?");
         $checkStmt->execute([$weekId]);
-
         if (!$checkStmt->fetch()) {
-
-            sendJson([
-                'success' => false,
-                'message' => 'Week not found'
-            ], 404);
+            sendJson(['success' => false, 'message' => 'Week not found'], 404);
         }
 
-
-        $stmt = $db->prepare("
-            INSERT INTO comments_week
-            (week_id, author, text)
-            VALUES (?, ?, ?)
-        ");
-
-        $stmt->execute([
-            $weekId,
-            $author,
-            $text
-        ]);
-
+        $stmt = $db->prepare("INSERT INTO comments_week (week_id, author, text) VALUES (?, ?, ?)");
+        $stmt->execute([$weekId, $author, $text]);
 
         $newComment = [
-            'id' => $db->lastInsertId(),
-            'week_id' => $weekId,
-            'author' => $author,
-            'text' => $text,
+            'id'         => $db->lastInsertId(),
+            'week_id'    => $weekId,
+            'author'     => $author,
+            'text'       => $text,
             'created_at' => date('Y-m-d H:i:s')
         ];
 
-        sendJson([
-            'success' => true,
-            'data' => $newComment
-        ], 201);
+        sendJson(['success' => true, 'data' => $newComment], 201);
     }
 
-
-    // Create Week
-    $title =
-        trim($input['title'] ?? '');
-
-    $startDate =
-        trim($input['start_date'] ?? '');
-
-    $description =
-        trim($input['description'] ?? '');
-
-    $links =
-        $input['links'] ?? [];
-
+    $title       = trim($input['title'] ?? '');
+    $startDate   = trim($input['start_date'] ?? '');
+    $description = trim($input['description'] ?? '');
+    $links       = $input['links'] ?? [];
 
     if (!$title) {
-
-        sendJson([
-            'success' => false,
-            'message' => 'Title is required'
-        ], 400);
+        sendJson(['success' => false, 'message' => 'Title is required'], 400);
     }
 
     if (!$startDate) {
-
-        sendJson([
-            'success' => false,
-            'message' => 'Start date is required'
-        ], 400);
+        sendJson(['success' => false, 'message' => 'Start date is required'], 400);
     }
 
-
-    $datePattern =
-        '/^\d{4}-\d{2}-\d{2}$/';
-
-    if (!preg_match($datePattern, $startDate)) {
-
-        sendJson([
-            'success' => false,
-            'message' => 'Invalid date format'
-        ], 400);
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
+        sendJson(['success' => false, 'message' => 'Invalid date format'], 400);
     }
 
+    $stmt = $db->prepare("INSERT INTO weeks (title, start_date, description, links) VALUES (?, ?, ?, ?)");
+    $stmt->execute([$title, $startDate, $description, json_encode($links)]);
 
-    $stmt = $db->prepare("
-        INSERT INTO weeks
-        (title, start_date, description, links)
-        VALUES (?, ?, ?, ?)
-    ");
-
-    $stmt->execute([
-        $title,
-        $startDate,
-        $description,
-        json_encode($links)
-    ]);
-
-
-    sendJson([
-        'success' => true,
-        'id' => $db->lastInsertId()
-    ], 201);
+    sendJson(['success' => true, 'id' => $db->lastInsertId()], 201);
 }
-
-
-// ============================================================
-// UPDATE WEEK
-// ============================================================
 
 if ($method === 'PUT') {
 
-    $input = json_decode(
-        file_get_contents('php://input'),
-        true
-    );
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
     $id = $input['id'] ?? null;
 
     if (!$id) {
-
-        sendJson([
-            'success' => false,
-            'message' => 'Missing id'
-        ], 400);
+        sendJson(['success' => false, 'message' => 'Missing id'], 400);
     }
 
-
-    $checkStmt = $db->prepare("
-        SELECT id
-        FROM weeks
-        WHERE id = ?
-    ");
-
+    $checkStmt = $db->prepare("SELECT id FROM weeks WHERE id = ?");
     $checkStmt->execute([$id]);
-
     if (!$checkStmt->fetch()) {
-
-        sendJson([
-            'success' => false,
-            'message' => 'Week not found'
-        ], 404);
+        sendJson(['success' => false, 'message' => 'Week not found'], 404);
     }
-
 
     if (
         isset($input['start_date']) &&
-        !preg_match(
-            '/^\d{4}-\d{2}-\d{2}$/',
-            $input['start_date']
-        )
+        !preg_match('/^\d{4}-\d{2}-\d{2}$/', $input['start_date'])
     ) {
-
-        sendJson([
-            'success' => false,
-            'message' => 'Invalid date format'
-        ], 400);
+        sendJson(['success' => false, 'message' => 'Invalid date format'], 400);
     }
-
 
     $stmt = $db->prepare("
         UPDATE weeks
-        SET
-            title = ?,
-            start_date = ?,
-            description = ?,
-            links = ?
+        SET title = ?, start_date = ?, description = ?, links = ?
         WHERE id = ?
     ");
-
     $stmt->execute([
-
-        $input['title'] ?? '',
-
-        $input['start_date'] ?? '',
-
+        $input['title']       ?? '',
+        $input['start_date']  ?? '',
         $input['description'] ?? '',
-
-        json_encode(
-            $input['links'] ?? []
-        ),
-
+        json_encode($input['links'] ?? []),
         $id
     ]);
 
-
-    sendJson([
-        'success' => true
-    ]);
+    sendJson(['success' => true]);
 }
-
-
-// ============================================================
-// DELETE WEEK
-// DELETE COMMENT
-// ============================================================
 
 if ($method === 'DELETE') {
 
-    $rawInput = file_get_contents("php://input");
+    $action    = $_GET['action']     ?? null;
+    $commentId = $_GET['comment_id'] ?? null;
+    $weekId    = $_GET['id']         ?? null;
 
-    $jsonData = json_decode($rawInput, true);
+    if ($action === 'delete_comment') {
 
-    parse_str($rawInput, $formData);
-
-
-    // --------------------------------------------------------
-    // DELETE COMMENT
-    // --------------------------------------------------------
-
-    $commentId =
-        $_GET['comment_id']
-        ?? $_GET['id']
-        ?? $formData['comment_id']
-        ?? $formData['id']
-        ?? $jsonData['comment_id']
-        ?? $jsonData['id']
-        ?? null;
-
-
-    if ($commentId !== null) {
-
-        $checkStmt = $db->prepare("
-            SELECT id
-            FROM comments_week
-            WHERE id = ?
-        ");
-
-        $checkStmt->execute([$commentId]);
-
-        if (!$checkStmt->fetch()) {
-
-            sendJson([
-                'success' => false,
-                'message' => 'Comment not found'
-            ], 404);
+        if (!$commentId) {
+            sendJson(['success' => false, 'message' => 'Missing comment_id'], 400);
         }
 
+        $checkStmt = $db->prepare("SELECT id FROM comments_week WHERE id = ?");
+        $checkStmt->execute([$commentId]);
+        if (!$checkStmt->fetch()) {
+            sendJson(['success' => false, 'message' => 'Comment not found'], 404);
+        }
 
-        $stmt = $db->prepare("
-            DELETE FROM comments_week
-            WHERE id = ?
-        ");
-
+        $stmt = $db->prepare("DELETE FROM comments_week WHERE id = ?");
         $stmt->execute([$commentId]);
 
-
-        sendJson([
-            'success' => true
-        ]);
+        sendJson(['success' => true]);
     }
-
-
-    // --------------------------------------------------------
-    // DELETE WEEK
-    // --------------------------------------------------------
-
-    $weekId =
-        $_GET['week_id']
-        ?? $_GET['id']
-        ?? $formData['week_id']
-        ?? $formData['id']
-        ?? $jsonData['week_id']
-        ?? $jsonData['id']
-        ?? null;
-
 
     if (!$weekId) {
-
-        sendJson([
-            'success' => false,
-            'message' => 'Missing id'
-        ], 400);
+        sendJson(['success' => false, 'message' => 'Missing id'], 400);
     }
 
-
-    $checkStmt = $db->prepare("
-        SELECT id
-        FROM weeks
-        WHERE id = ?
-    ");
-
+    $checkStmt = $db->prepare("SELECT id FROM weeks WHERE id = ?");
     $checkStmt->execute([$weekId]);
-
     if (!$checkStmt->fetch()) {
-
-        sendJson([
-            'success' => false,
-            'message' => 'Week not found'
-        ], 404);
+        sendJson(['success' => false, 'message' => 'Week not found'], 404);
     }
 
-
-    $stmt = $db->prepare("
-        DELETE FROM weeks
-        WHERE id = ?
-    ");
-
+    $stmt = $db->prepare("DELETE FROM weeks WHERE id = ?");
     $stmt->execute([$weekId]);
 
-
-    sendJson([
-        'success' => true
-    ]);
+    sendJson(['success' => true]);
 }
 
-
-// ============================================================
-// METHOD NOT ALLOWED
-// ============================================================
-
-sendJson([
-    'success' => false,
-    'message' => 'Method not allowed'
-], 405);
+sendJson(['success' => false, 'message' => 'Method not allowed'], 405);
