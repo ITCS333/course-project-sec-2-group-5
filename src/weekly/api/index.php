@@ -423,18 +423,21 @@ if ($method === 'PUT') {
 
 if ($method === 'DELETE') {
 
+    parse_str(
+        file_get_contents("php://input"),
+        $deleteData
+    );
+
+
     // Delete Comment
     if (
         isset($_GET['comment_id']) ||
-        (
-            isset($_GET['action']) &&
-            $_GET['action'] === 'delete_comment'
-        )
+        isset($deleteData['comment_id'])
     ) {
 
         $commentId =
             $_GET['comment_id']
-            ?? $_GET['id']
+            ?? $deleteData['comment_id']
             ?? null;
 
 
@@ -479,7 +482,11 @@ if ($method === 'DELETE') {
 
 
     // Delete Week
-    $id = $_GET['id'] ?? null;
+    $id =
+        $_GET['id']
+        ?? $deleteData['id']
+        ?? null;
+
 
     if (!$id) {
 
