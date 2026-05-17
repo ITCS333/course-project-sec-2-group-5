@@ -81,7 +81,8 @@ if ($method === 'GET') {
                 title,
                 start_date,
                 description,
-                links
+                links,
+                created_at
             FROM weeks
             WHERE id = ?
         ");
@@ -115,7 +116,8 @@ if ($method === 'GET') {
             title,
             start_date,
             description,
-            links
+            links,
+            created_at
         FROM weeks
     ";
 
@@ -422,22 +424,10 @@ if ($method === 'PUT') {
 if ($method === 'DELETE') {
 
     // Delete Comment
-    if (
-        isset($_GET['action']) &&
-        $_GET['action'] === 'delete_comment'
-    ) {
+    if (isset($_GET['comment_id'])) {
 
         $commentId =
-            $_GET['comment_id'] ?? null;
-
-        if (!$commentId) {
-
-            sendJson([
-                'success' => false,
-                'message' => 'Missing comment_id'
-            ], 400);
-        }
-
+            $_GET['comment_id'];
 
         $checkStmt = $db->prepare("
             SELECT id
