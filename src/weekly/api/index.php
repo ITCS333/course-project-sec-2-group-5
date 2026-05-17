@@ -423,32 +423,28 @@ if ($method === 'PUT') {
 
 if ($method === 'DELETE') {
 
-    parse_str(
-        file_get_contents("php://input"),
-        $deleteData
-    );
+    $rawInput = file_get_contents("php://input");
+
+    $jsonData = json_decode($rawInput, true);
+
+    parse_str($rawInput, $formData);
 
 
-    // Delete Comment
-    if (
-        isset($_GET['comment_id']) ||
-        isset($deleteData['comment_id'])
-    ) {
+    // --------------------------------------------------------
+    // DELETE COMMENT
+    // --------------------------------------------------------
 
-        $commentId =
-            $_GET['comment_id']
-            ?? $deleteData['comment_id']
-            ?? null;
+    $commentId =
+        $_GET['comment_id']
+        ?? $_GET['id']
+        ?? $formData['comment_id']
+        ?? $formData['id']
+        ?? $jsonData['comment_id']
+        ?? $jsonData['id']
+        ?? null;
 
 
-        if (!$commentId) {
-
-            sendJson([
-                'success' => false,
-                'message' => 'Missing comment id'
-            ], 400);
-        }
-
+    if ($commentId !== null) {
 
         $checkStmt = $db->prepare("
             SELECT id
@@ -481,14 +477,21 @@ if ($method === 'DELETE') {
     }
 
 
-    // Delete Week
-    $id =
-        $_GET['id']
-        ?? $deleteData['id']
+    // --------------------------------------------------------
+    // DELETE WEEK
+    // --------------------------------------------------------
+
+    $weekId =
+        $_GET['week_id']
+        ?? $_GET['id']
+        ?? $formData['week_id']
+        ?? $formData['id']
+        ?? $jsonData['week_id']
+        ?? $jsonData['id']
         ?? null;
 
 
-    if (!$id) {
+    if (!$weekId) {
 
         sendJson([
             'success' => false,
@@ -503,7 +506,7 @@ if ($method === 'DELETE') {
         WHERE id = ?
     ");
 
-    $checkStmt->execute([$id]);
+    $checkStmt->execute([$weekId]);
 
     if (!$checkStmt->fetch()) {
 
@@ -519,7 +522,7 @@ if ($method === 'DELETE') {
         WHERE id = ?
     ");
 
-    $stmt->execute([$id]);
+    $stmt->execute([$weekId]);
 
 
     sendJson([
