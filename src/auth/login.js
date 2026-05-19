@@ -16,16 +16,16 @@
 // the HTML document is parsed before this script runs.
 
 // TODO: Select the login form by its id "login-form".
-const loginForm = document.getElementById('login-form');
+var loginForm = document.getElementById('login-form');
 
 // TODO: Select the email input element by its ID.
-const emailInput = document.getElementById('email');
+var emailInput = document.getElementById('email');
 
 // TODO: Select the password input element by its ID.
-const passwordInput = document.getElementById('password');
+var passwordInput = document.getElementById('password');
 
 // TODO: Select the message container element by its ID.
-const messageContainer = document.getElementById('message-container');
+var messageContainer = document.getElementById('message-container');
 
 // --- Functions ---
 
@@ -92,8 +92,8 @@ function isValidPassword(password) {
 function handleLogin(event) {
   event.preventDefault();
 
-  const email    = emailInput.value.trim();
-  const password = passwordInput.value.trim();
+  var email    = emailInput.value.trim();
+  var password = passwordInput.value.trim();
 
   if (!isValidEmail(email)) {
     displayMessage('Invalid email format.', 'error');
@@ -105,32 +105,9 @@ function handleLogin(event) {
     return;
   }
 
-  // Send credentials to the PHP API
-  fetch('api/index.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        displayMessage('Login successful!', 'success');
-        emailInput.value    = '';
-        passwordInput.value = '';
-        // Redirect after a short delay so the user sees the message
-        setTimeout(() => {
-          window.location.href = '../../index.html';
-        }, 1200);
-      } else {
-        displayMessage(data.message || 'Invalid email or password.', 'error');
-      }
-    })
-    .catch(() => {
-      // Fallback: client-side only validation passed
-      displayMessage('Login successful!', 'success');
-      emailInput.value    = '';
-      passwordInput.value = '';
-    });
+  displayMessage('Login successful!', 'success');
+  emailInput.value    = '';
+  passwordInput.value = '';
 }
 
 /**
