@@ -1,1 +1,251 @@
 <!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITCS333 — Internet Software Development</title>
+    <link rel="stylesheet" href="src/common/styles.css">
+    <style>
+        /* ── Hero ── */
+        .hero {
+            background-color: #2563eb;
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .hero h1 {
+            color: white;
+            font-size: 2.2rem;
+            margin-bottom: 12px;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            opacity: .9;
+            margin-bottom: 24px;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background-color: white;
+            color: #2563eb;
+            padding: 12px 28px;
+            border-radius: 6px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: opacity .2s;
+            width: auto;
+            margin-bottom: 0;
+        }
+
+        .btn-primary:hover {
+            opacity: .85;
+            text-decoration: none;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: white;
+            padding: 12px 28px;
+            border-radius: 6px;
+            font-weight: bold;
+            border: 2px solid white;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color .2s;
+            width: auto;
+            margin-bottom: 0;
+        }
+
+        .btn-outline:hover {
+            background-color: rgba(255, 255, 255, .15);
+            text-decoration: none;
+        }
+
+        /* ── Nav card grid ── */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .nav-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 24px 16px;
+            text-align: center;
+            text-decoration: none;
+            color: #222;
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+        .nav-card:hover {
+            border-color: #2563eb;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, .15);
+            text-decoration: none;
+        }
+
+        .nav-card .icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .nav-card h3 {
+            color: #2563eb;
+            margin-bottom: 6px;
+            font-size: 1rem;
+        }
+
+        .nav-card p {
+            font-size: .85rem;
+            color: #555;
+            margin: 0;
+        }
+
+        /* ── Announcements ── */
+        .announcement-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .announcement-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .announcement-list li:last-child {
+            border-bottom: none;
+        }
+
+        .badge {
+            background: #2563eb;
+            color: white;
+            font-size: .72rem;
+            padding: 2px 8px;
+            border-radius: 99px;
+            white-space: nowrap;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>ITCS333 — Internet Software Development</h1>
+        <p>University of Bahrain &nbsp;|&nbsp; Course Portal</p>
+    </header>
+
+    <main>
+
+        <!-- Hero Banner -->
+        <div class="hero">
+            <h1>Welcome to the Course Portal</h1>
+            <p>Access resources, weekly breakdowns, assignments, and discussions — all in one place.</p>
+            <div class="hero-actions">
+                <a id="login-link" href="src/auth/login.html" class="btn-primary">Log In</a>
+                <a id="resources-link" href="src/resources/" class="btn-outline">Browse Resources</a>
+            </div>
+        </div>
+
+        <!-- Quick Navigation -->
+        <section>
+            <h2>Quick Navigation</h2>
+            <div class="nav-grid">
+                <a id="nav-resources" href="src/resources/list.html" class="nav-card">
+                    <div class="icon">📚</div>
+                    <h3>Resources</h3>
+                    <p>Course materials &amp; links</p>
+                </a>
+                <a id="nav-weekly" href="src/weekly/list.html" class="nav-card">
+                    <div class="icon">📅</div>
+                    <h3>Weekly Breakdown</h3>
+                    <p>Week-by-week content</p>
+                </a>
+                <a id="nav-assignments" href="src/assignments/list.html" class="nav-card">
+                    <div class="icon">📝</div>
+                    <h3>Assignments</h3>
+                    <p>Deadlines &amp; submissions</p>
+                </a>
+                <a id="nav-discussion" href="src/discussion/board.html" class="nav-card">
+                    <div class="icon">💬</div>
+                    <h3>Discussion Board</h3>
+                    <p>Ask questions &amp; discuss</p>
+                </a>
+                <a id="nav-admin" href="src/admin/manage_users.html" class="nav-card">
+                    <div class="icon">🔧</div>
+                    <h3>Admin Portal</h3>
+                    <p>User &amp; content management</p>
+                </a>
+            </div>
+        </section>
+
+        <!-- Announcements -->
+        <section>
+            <h2>Announcements</h2>
+            <ul class="announcement-list">
+                <li>
+                    <span class="badge">New</span>
+                    <div>
+                        <strong>Assignment 3 — Final Project Proposal</strong> is now open. Due <time>20 March
+                            2025</time>.
+                    </div>
+                </li>
+                <li>
+                    <span class="badge">Info</span>
+                    <div>
+                        Week 5 materials (DOM Manipulation) have been published in the Weekly Breakdown section.
+                    </div>
+                </li>
+                <li>
+                    <span class="badge">Info</span>
+                    <div>
+                        Office hours are held every <strong>Tuesday 10:00 – 12:00</strong> in Building 3, Room 204.
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <!-- Course Info -->
+        <section>
+            <h2>About This Course</h2>
+            <p>
+                ITCS333 covers the full stack of internet software development: HTML5, CSS3, JavaScript (ES6+),
+                PHP 8, and MySQL. By the end of the semester students will be able to design and deploy
+                complete, database-driven web applications.
+            </p>
+            <ul style="padding-left:20px; margin-top:10px;">
+                <li>Credit hours: 3</li>
+                <li>Lab hours: 2 per week</li>
+                <li>Prerequisite: ITCS214 or equivalent</li>
+                <li>Default student password: <code>password</code></li>
+            </ul>
+        </section>
+
+    </main>
+
+    <footer>
+        <p>&copy; 2025 University of Bahrain &mdash; ITCS333 Internet Software Development</p>
+    </footer>
+</body>
+
+</html>
