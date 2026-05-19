@@ -332,7 +332,7 @@ function handleSort(event) {
 
   if (!key) return; // "Actions" column — not sortable
 
-  var currentDir = th.dataset.sortDir || 'asc';
+  var currentDir = th.dataset.sortDir || 'desc'; // no prior sort → first click → 'asc'
   var nextDir    = currentDir === 'asc' ? 'desc' : 'asc';
   th.dataset.sortDir = nextDir;
 
