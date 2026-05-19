@@ -29,133 +29,261 @@
 let topics = [];
 
 // --- Element Selections ---
-// TODO: Select the new-topic form by id 'new-topic-form'.
+// Select the new-topic form by id 'new-topic-form'.
+const newTopicForm = document.getElementById('new-topic-form');
 
-// TODO: Select the topic list container by id 'topic-list-container'.
+// Select the topic list container by id 'topic-list-container'.
+const topicListContainer = document.getElementById('topic-list-container');
+
+// Select the submit button to handle dynamic UI state updates during edit mode
+const submitButton = document.getElementById('create-topic');
+
 
 // --- Functions ---
 
 /**
- * TODO: Implement createTopicArticle.
+ * Creates and returns an HTML <article> element matching the discussion board schema.
  *
  * Parameters:
- *   topic — one topic object with shape:
- *     { id, subject, message, author, created_at }
+ * topic — one topic object with shape: { id, subject, message, author, created_at }
  *
- * Returns an <article> element matching the structure shown in board.html:
- *   <article>
- *     <h3><a href="topic.html?id={id}">{subject}</a></h3>
- *     <footer>Posted by: {author} on {created_at}</footer>
- *     <div>
- *       <button class="edit-btn"   data-id="{id}">Edit</button>
- *       <button class="delete-btn" data-id="{id}">Delete</button>
- *     </div>
- *   </article>
- *
- * Important:
- * - The link href MUST be "topic.html?id=<id>" so topic.js can read
- *   the id from the URL.
- * - The data-id on both buttons holds the integer primary key from
- *   the topics table.
- * - Use created_at (not a field called "date") — this matches the SQL
- *   column name.
+ * Returns: HTMLArticleElement
  */
 function createTopicArticle(topic) {
-  // ... your implementation here ...
+  const article = document.createElement('article');
+
+  // Clean string helper to protect against template injection vulnerabilities
+  const escapeHtml = (str) => {
+    if (!str) return '';
+    return str.toString()
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
+  article.innerHTML = `
+    <h3><a href="topic.html?id=${topic.id}">${escapeHtml(topic.subject)}</a></h3>
+    <footer>Posted by: ${escapeHtml(topic.author)} on ${escapeHtml(topic.created_at)}</footer>
+    <div>
+      <button class="edit-btn" data-id="${topic.id}">Edit</button>
+      <button class="delete-btn" data-id="${topic.id}">Delete</button>
+    </div>
+  `;
+
+  return article;
 }
 
 /**
- * TODO: Implement renderTopics.
- *
- * It should:
- * 1. Clear the topicListContainer (set innerHTML to "").
- * 2. Loop through the global `topics` array.
- * 3. For each topic, call createTopicArticle(topic) and append the
- *    returned <article> to topicListContainer.
+ * Clears out the current view and populates the container with items from the global store.
  */
 function renderTopics() {
-  // ... your implementation here ...
+  // 1. Clear the topicListContainer
+  topicListContainer.innerHTML = "";
+
+  // 2. Loop through the global topics array
+  topics.forEach(topic => {
+    // 3. Create component and append to structural container hook
+    const topicArticle = createTopicArticle(topic);
+    topicListContainer.appendChild(topicArticle);
+  });
 }
 
 /**
- * TODO: Implement handleCreateTopic (async).
- *
- * This is the event handler for the form's 'submit' event.
- * It should:
- * 1. Call event.preventDefault().
- * 2. Read values from:
- *      - #topic-subject → subject (string)
- *      - #topic-message → message (string)
- * 3. Send a POST to './api/index.php' with the body:
- *      { subject, message, author: "Student" }
- *    (author is hardcoded "Student" for this exercise)
- *    The API inserts a row into the topics table.
- * 4. On success (result.success === true):
- *    - Push the new topic object (with the id from result.id) onto
- *      the global `topics` array.
- *    - Call renderTopics() to refresh the list.
- *    - Reset the form.
+ * Event handler for the new-topic form's 'submit' event.
+ * Handles both new records (POST) and existing record changes (PUT).
  */
 async function handleCreateTopic(event) {
-  // ... your implementation here ...
+  // 1. Intercept native browser handling
+  event.preventDefault();
+
+  // 2. Read structural interface element values
+  const subjectInput = document.getElementById('topic-subject');
+  const messageInput = document.getElementById('topic-message');
+
+  const subject = subjectInput.value.trim();
+  const message = messageInput.value.trim();
+
+  if (!subject || !message) {
+    alert("Please fill out all required form fields.");
+    return;
+  }
+
+  // Intercept workflow routing logic: Check if we are updating an existing entry
+  const editId = submitButton.getAttribute('data-edit-id');
+  if (editId) {
+    await handleUpdateTopic(parseInt(editId, 10), { subject, message });
+
+    // Reset form submission view states back to creation mode
+    submitButton.textContent = "Create Topic";
+    submitButton.removeAttribute('data-edit-id');
+    newTopicForm.reset();
+    return;
+  }
+
+  // 3. Send a POST payload to store a brand new topic
+  try {
+    const response = await fetch('./api/index.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        subject,
+        message,
+        author: "Student" // Author identity context parameter hardcoded for this assignment module
+      })
+    });
+
+    const result = await response.json();
+
+    // 4. On API verification success:
+    if (result.success === true) {
+      // Build internal record tracking object using the database entity primary key returned
+      const newTopic = {
+        id: result.id,
+        subject: subject,
+        message: message,
+        author: "Student",
+        created_at: new Date().toISOString().replace('T', ' ').substring(0, 19) // Approximate a fallback client-side valid standard SQL timestamp
+      };
+
+      // Push onto tracking cache and update screen views
+      topics.push(newTopic);
+      renderTopics();
+      newTopicForm.reset();
+    } else {
+      alert(result.message || "An unexpected issue occurred while storing the new topic.");
+    }
+  } catch (error) {
+    console.error("Network communication exception during topic persistence execution:", error);
+    alert("Unable to reach servers. Please test connection parameters.");
+  }
 }
 
 /**
- * TODO: Implement handleUpdateTopic (async).
- *
- * Parameters:
- *   id     — the integer primary key of the topic being edited.
- *   fields — object with { subject, message }.
- *
- * It should:
- * 1. Send a PUT to './api/index.php' with the body:
- *      { id, subject, message }
- * 2. On success:
- *    - Update the matching entry in the global `topics` array.
- *    - Call renderTopics() to refresh the list.
+ * Sends structural modifications (PUT) to synchronize state edits back to the storage layer.
  */
 async function handleUpdateTopic(id, fields) {
-  // ... your implementation here ...
+  try {
+    // 1. Dispatch update array back to API endpoint context routing layers
+    const response = await fetch('./api/index.php', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        id: id,
+        subject: fields.subject,
+        message: fields.message
+      })
+    });
+
+    const result = await response.json();
+
+    // 2. Sync internal data properties matching the successfully targeted entity ID
+    if (result.success === true) {
+      const targetIndex = topics.findIndex(item => item.id === id);
+      if (targetIndex !== -1) {
+        topics[targetIndex].subject = fields.subject;
+        topics[targetIndex].message = fields.message;
+      }
+
+      // Update data visualization panels
+      renderTopics();
+    } else {
+      alert(result.message || "Failed to commit record updates.");
+    }
+  } catch (error) {
+    console.error("Network communication failure during context modification transaction:", error);
+  }
 }
 
 /**
- * TODO: Implement handleTopicListClick (async).
- *
- * This is a delegated click listener on topicListContainer.
- * It should:
- * 1. If event.target has class "delete-btn":
- *    a. Read the integer id from event.target.dataset.id.
- *    b. Send a DELETE to './api/index.php?id=<id>'.
- *    c. On success, remove the topic from the global `topics` array
- *       and call renderTopics().
- *
- * 2. If event.target has class "edit-btn":
- *    a. Read the integer id from event.target.dataset.id.
- *    b. Find the matching topic in the global `topics` array.
- *    c. Populate #topic-subject and #topic-message with the topic's data.
- *    d. Change the submit button (#create-topic) text to "Update Topic"
- *       and set its data-edit-id attribute to the topic's id.
+ * Event-delegated collection event tracking handler hooked onto parent discussion element wrappers.
  */
 async function handleTopicListClick(event) {
-  // ... your implementation here ...
+  const targetElement = event.target;
+
+  // 1. Handle targeted record deletion commands
+  if (targetElement.classList.contains('delete-btn')) {
+    // a. Parse out resource index identity details
+    const topicId = parseInt(targetElement.dataset.id, 10);
+
+    if (!confirm("Are you verify choosing to remove this topic profile permanently?")) {
+      return;
+    }
+
+    // b. Send DELETE request payload parameter options
+    try {
+      const response = await fetch(`./api/index.php?id=${topicId}`, {
+        method: 'DELETE'
+      });
+      const result = await response.json();
+
+      // c. On successful backend clearing verification:
+      if (result.success === true) {
+        topics = topics.filter(item => item.id !== topicId);
+        renderTopics();
+      } else {
+        alert(result.message || "Removal request processing denied on server.");
+      }
+    } catch (error) {
+      console.error("Communication system fault encountered while erasing discussion entity:", error);
+    }
+    return;
+  }
+
+  // 2. Handle component modification workflow state modifications
+  if (targetElement.classList.contains('edit-btn')) {
+    // a. Parse selection entity data attributes
+    const topicId = parseInt(targetElement.dataset.id, 10);
+
+    // b. Retrieve original state from client-side runtime arrays
+    const targetedTopic = topics.find(item => item.id === topicId);
+
+    if (targetedTopic) {
+      // c. Load input form value states with contextual parameters
+      document.getElementById('topic-subject').value = targetedTopic.subject;
+      document.getElementById('topic-message').value = targetedTopic.message;
+
+      // d. Reconfigure form tracking contexts to target an update action workflow path
+      submitButton.textContent = "Update Topic";
+      submitButton.setAttribute('data-edit-id', topicId);
+
+      // UX Polish: Scroll to form container view block smoothly
+      newTopicForm.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
 }
 
 /**
- * TODO: Implement loadAndInitialize (async).
- *
- * It should:
- * 1. Send a GET to './api/index.php'.
- *    Response shape: { success: true, data: [ ...topic objects ] }
- * 2. Store the data array in the global `topics` variable.
- * 3. Call renderTopics() to populate the list.
- * 4. Attach the 'submit' event listener to the new-topic form
- *    (calls handleCreateTopic).
- * 5. Attach a 'click' event listener to topicListContainer
- *    (calls handleTopicListClick — event delegation for edit and delete).
+ * Resolves application boot, loading initial storage states, and mapping interactive event observers.
  */
 async function loadAndInitialize() {
-  // ... your implementation here ...
+  try {
+    // 1. Fetch collection states from endpoint router targets
+    const response = await fetch('./api/index.php');
+    const result = await response.json();
+
+    // 2. Synchronize responses onto internal global state caches
+    if (result.success === true && Array.isArray(result.data)) {
+      topics = result.data;
+
+      // 3. Render content entries inside UI viewport view panels
+      renderTopics();
+    }
+  } catch (error) {
+    console.error("Critical board dependency loading routine exceptions caught:", error);
+  }
+
+  // 4. Attach event listeners
+  newTopicForm.addEventListener('submit', handleCreateTopic);
+
+  // 5. Attach event delegation handlers onto global topic collections listing hooks
+  topicListContainer.addEventListener('click', handleTopicListClick);
 }
 
-// --- Initial Page Load ---
+// --- Initial Page Load Initialization Execution Trigger ---
 loadAndInitialize();

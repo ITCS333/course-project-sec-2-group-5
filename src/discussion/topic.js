@@ -42,14 +42,18 @@ let currentTopicId = null;
 let currentReplies = [];
 
 // --- Element Selections ---
-// TODO: Select each element by its id:
-//   topicSubject, opMessage, opFooter,
-//   replyListContainer, replyForm, newReplyText.
+// Select each element by its id: topicSubject, opMessage, opFooter, replyListContainer, replyForm, newReplyText.
+const topicSubject = document.getElementById('topic-subject');
+const opMessage = document.getElementById('op-message');
+const opFooter = document.getElementById('op-footer');
+const replyListContainer = document.getElementById('reply-list-container');
+const replyForm = document.getElementById('reply-form');
+const newReplyText = document.getElementById('new-reply');
 
 // --- Functions ---
 
 /**
- * TODO: Implement getTopicIdFromURL.
+ * Implement getTopicIdFromURL.
  *
  * It should:
  * 1. Read window.location.search.
@@ -58,11 +62,12 @@ let currentReplies = [];
  *    the integer primary key of the topic).
  */
 function getTopicIdFromURL() {
-  // ... your implementation here ...
+  const params = new URLSearchParams(window.location.search);
+  return params.get('id');
 }
 
 /**
- * TODO: Implement renderOriginalPost.
+ * Implement renderOriginalPost.
  *
  * Parameters:
  *   topic — the topic object returned by the API (see shape above).
@@ -70,16 +75,17 @@ function getTopicIdFromURL() {
  * It should:
  * 1. Set topicSubject.textContent = topic.subject.
  * 2. Set opMessage.textContent    = topic.message.
- * 3. Set opFooter.textContent     = "Posted by: " + topic.author +
- *    " on " + topic.created_at.
+ * 3. Set opFooter.textContent     = "Posted by: " + topic.author + " on " + topic.created_at.
  *    (Note: use topic.created_at, which matches the SQL column name.)
  */
 function renderOriginalPost(topic) {
-  // ... your implementation here ...
+  if (topicSubject) topicSubject.textContent = topic.subject;
+  if (opMessage) opMessage.textContent = topic.message;
+  if (opFooter) opFooter.textContent = "Posted by: " + topic.author + " on " + topic.created_at;
 }
 
 /**
- * TODO: Implement createReplyArticle.
+ * Implement createReplyArticle.
  *
  * Parameters:
  *   reply — one reply object from the API:
@@ -94,15 +100,33 @@ function renderOriginalPost(topic) {
  *     </div>
  *   </article>
  *
- * Note: use reply.created_at (not a field called "date") — this matches
- * the SQL column name.
+ * Note: programmatically constructing elements preserves safety against XSS.
  */
 function createReplyArticle(reply) {
-  // ... your implementation here ...
+  const article = document.createElement('article');
+
+  const p = document.createElement('p');
+  p.textContent = reply.text;
+
+  const footer = document.createElement('footer');
+  footer.textContent = "Posted by: " + reply.author + " on " + reply.created_at;
+
+  const div = document.createElement('div');
+  const button = document.createElement('button');
+  button.className = 'delete-reply-btn';
+  button.setAttribute('data-id', reply.id);
+  button.textContent = 'Delete';
+
+  div.appendChild(button);
+  article.appendChild(p);
+  article.appendChild(footer);
+  article.appendChild(div);
+
+  return article;
 }
 
 /**
- * TODO: Implement renderReplies.
+ * Implement renderReplies.
  *
  * It should:
  * 1. Clear replyListContainer (set innerHTML to "").
@@ -111,11 +135,17 @@ function createReplyArticle(reply) {
  *    result to replyListContainer.
  */
 function renderReplies() {
-  // ... your implementation here ...
+  if (!replyListContainer) return;
+  replyListContainer.innerHTML = "";
+
+  currentReplies.forEach(reply => {
+    const replyArticle = createReplyArticle(reply);
+    replyListContainer.appendChild(replyArticle);
+  });
 }
 
 /**
- * TODO: Implement handleAddReply (async).
+ * Implement handleAddReply (async).
  *
  * This is the event handler for replyForm's 'submit' event.
  * It should:
@@ -135,11 +165,38 @@ function renderReplies() {
  *    - Clear newReplyText.
  */
 async function handleAddReply(event) {
-  // ... your implementation here ...
+  event.preventDefault();
+
+  if (!newReplyText) return;
+  const replyText = newReplyText.value.trim();
+  if (!replyText) return;
+
+  try {
+    const response = await fetch('./api/index.php?action=reply', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        topic_id: parseInt(currentTopicId, 10),
+        author: "Student",
+        text: replyText
+      })
+    });
+
+    const result = await response.json();
+    if (result && result.success === true) {
+      currentReplies.push(result.data);
+      renderReplies();
+      newReplyText.value = "";
+    }
+  } catch (error) {
+    console.error("Error creating reply:", error);
+  }
 }
 
 /**
- * TODO: Implement handleReplyListClick (async).
+ * Implement handleReplyListClick (async).
  *
  * This is a delegated click listener on replyListContainer.
  * It should:
@@ -150,11 +207,27 @@ async function handleAddReply(event) {
  *       renderReplies().
  */
 async function handleReplyListClick(event) {
-  // ... your implementation here ...
+  if (event.target && event.target.classList.contains('delete-reply-btn')) {
+    const replyId = parseInt(event.target.dataset.id, 10);
+
+    try {
+      const response = await fetch(`./api/index.php?action=delete_reply&id=${replyId}`, {
+        method: 'DELETE'
+      });
+
+      const result = await response.json();
+      if (result && result.success === true) {
+        currentReplies = currentReplies.filter(reply => reply.id !== replyId);
+        renderReplies();
+      }
+    } catch (error) {
+      console.error("Error deleting reply:", error);
+    }
+  }
 }
 
 /**
- * TODO: Implement initializePage (async).
+ * Implement initializePage (async).
  *
  * It should:
  * 1. Call getTopicIdFromURL() and store the result in currentTopicId.
@@ -180,7 +253,40 @@ async function handleReplyListClick(event) {
  *    - Set topicSubject.textContent = "Topic not found."
  */
 async function initializePage() {
-  // ... your implementation here ...
+  currentTopicId = getTopicIdFromURL();
+
+  if (!currentTopicId) {
+    if (topicSubject) topicSubject.textContent = "Topic not found.";
+    return;
+  }
+
+  try {
+    const [topicResponse, repliesResponse] = await Promise.all([
+      fetch(`./api/index.php?id=${currentTopicId}`).then(res => res.json()),
+      fetch(`./api/index.php?action=replies&topic_id=${currentTopicId}`).then(res => res.json())
+    ]);
+
+    if (topicResponse && topicResponse.success === true && topicResponse.data) {
+      currentReplies = (repliesResponse && repliesResponse.success === true && repliesResponse.data)
+        ? repliesResponse.data
+        : [];
+
+      renderOriginalPost(topicResponse.data);
+      renderReplies();
+
+      if (replyForm) {
+        replyForm.addEventListener('submit', handleAddReply);
+      }
+      if (replyListContainer) {
+        replyListContainer.addEventListener('click', handleReplyListClick);
+      }
+    } else {
+      if (topicSubject) topicSubject.textContent = "Topic not found.";
+    }
+  } catch (error) {
+    console.error("Error loading the page data:", error);
+    if (topicSubject) topicSubject.textContent = "Topic not found.";
+  }
 }
 
 // --- Initial Page Load ---
