@@ -1,66 +1,113 @@
 /*
   Requirement: Populate the "Course Resources" list page.
+  Instructions:
+  1. Link this file to list.html using:
+     <script src="list.js" defer></script>
+  2. In list.html, add id="resource-list-section" to the
+     <section> element that will contain the resource articles.
+  3. Implement the TODOs below.
 */
 
 // --- Element Selections ---
+// TODO: Select the section for the resource list ('#resource-list-section').
 const resourceListSection = document.querySelector('#resource-list-section');
 
 // --- Functions ---
 
 /**
- * Builds and returns a single resource <article> element.
+ * TODO: Implement the createResourceArticle function.
+ * It takes one resource object { id, title, description, link }.
+ * It should return an <article> element matching the structure in list.html.
+ * The "View Resource & Discussion" link's href MUST be set to
+ * details.html?id=${id} so the detail page knows which resource to load.
  */
 function createResourceArticle(resource) {
   const { id, title, description } = resource;
 
+  // 1. Create the main wrapping <article> element
   const article = document.createElement('article');
 
-  const heading = document.createElement('h3');
-  heading.textContent = title;
+  // 2. Create the resource title heading element
+  const titleHeading = document.createElement('h3');
+  titleHeading.textContent = title;
 
-  const p = document.createElement('p');
-  p.textContent = description;
+  // 3. Create the paragraph element for the description
+  const descriptionPara = document.createElement('p');
+  descriptionPara.textContent = description;
 
-  const a = document.createElement('a');
-  a.href        = `details.html?id=${id}`;
-  a.textContent = 'View Resource & Discussion';
+  // 4. Create the detail/discussion link pointing to details.html?id=${id}
+  const detailLink = document.createElement('a');
+  detailLink.href = `details.html?id=${id}`;
+  detailLink.textContent = 'View Resource & Discussion';
+  
+  // Custom styling hook: Display block or line break if needed for clean layout
+  detailLink.style.display = 'inline-block';
+  detailLink.style.marginTop = '10px';
 
-  article.appendChild(heading);
-  article.appendChild(p);
-  article.appendChild(a);
+  // 5. Assemble all components inside the article node
+  article.appendChild(titleHeading);
+  article.appendChild(descriptionPara);
+  article.appendChild(detailLink);
 
   return article;
 }
 
 /**
- * Fetches all resources from the API and renders them into the list section.
+ * TODO: Implement the loadResources function.
+ * This function must be 'async'.
+ * It should:
+ * 1. Use fetch() to GET data from the API endpoint:
+ * './api/index.php'
+ * 2. Parse the JSON response. The API returns { success: true, data: [...] }.
+ * 3. Clear any existing content from the list section.
+ * 4. Loop through the resources array in data. For each resource:
+ * - Call createResourceArticle() with the resource object.
+ * - Append the returned <article> element to the list section.
  */
 async function loadResources() {
-  try {
-    const res  = await fetch('./api/index.php');
-    const data = await res.json();
+  // Guard clause to ensure target element exists in the current page DOM
+  if (!resourceListSection) return;
 
+  try {
+    // 1. Fetch data from the resource API endpoint
+    const response = await fetch('./api/index.php');
+
+    // 2. Parse the incoming JSON stream payload
+    const result = await response.json();
+
+    // 3. Clear out loading placeholders or pre-existing fallback layout frames
     resourceListSection.innerHTML = '';
 
-    if (data.success && data.data.length > 0) {
-      data.data.forEach(resource => {
-        const article = createResourceArticle(resource);
-        resourceListSection.appendChild(article);
+    // 4. Inspect data status and map resources to structural elements
+    if (result.success && Array.isArray(result.data)) {
+      
+      // Handle scenario when zero resources have been published yet
+      if (result.data.length === 0) {
+        const fallbackMessage = document.createElement('p');
+        fallbackMessage.textContent = 'No course resources are currently available.';
+        resourceListSection.appendChild(fallbackMessage);
+        return;
+      }
+
+      // Loop through arrays and append configured article modules
+      result.data.forEach(resource => {
+        const resourceCard = createResourceArticle(resource);
+        resourceListSection.appendChild(resourceCard);
       });
+      
     } else {
-      const empty = document.createElement('p');
-      empty.textContent = 'No resources are available yet.';
-      resourceListSection.appendChild(empty);
+      console.error('API responded with unexpected layout structures:', result);
+      resourceListSection.innerHTML = '<p>Error parsing database resources.</p>';
     }
 
-  } catch (err) {
-    console.error('Error loading resources:', err);
-
-    const errorMsg = document.createElement('p');
-    errorMsg.textContent = 'Failed to load resources. Please try again later.';
-    resourceListSection.appendChild(errorMsg);
+  } catch (error) {
+    console.error('Error fetching resource material payload records:', error);
+    if (resourceListSection) {
+      resourceListSection.innerHTML = '<p>Unable to retrieve course files at this moment.</p>';
+    }
   }
 }
 
 // --- Initial Page Load ---
+// Call the function to populate the page.
 loadResources();
