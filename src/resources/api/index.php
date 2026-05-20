@@ -13,7 +13,6 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-// Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
@@ -25,14 +24,13 @@ $database = new Database();
 $db       = $database->getConnection();
 
 $method  = $_SERVER['REQUEST_METHOD'];
-
 $rawData = file_get_contents('php://input');
 $data    = json_decode($rawData, true);
 
-$action     = isset($_GET['action'])     ? trim($_GET['action'])     : null;
-$id         = isset($_GET['id'])         ? trim($_GET['id'])         : null;
-$resourceId = isset($_GET['resource_id'])? trim($_GET['resource_id']): null;
-$commentId  = isset($_GET['comment_id']) ? trim($_GET['comment_id']) : null;
+$action     = isset($_GET['action'])      ? trim($_GET['action'])      : null;
+$id         = isset($_GET['id'])          ? trim($_GET['id'])          : null;
+$resourceId = isset($_GET['resource_id']) ? trim($_GET['resource_id']) : null;
+$commentId  = isset($_GET['comment_id'])  ? trim($_GET['comment_id'])  : null;
 
 
 // ============================================================================
@@ -43,20 +41,17 @@ function getAllResources($db) {
     $sql    = 'SELECT id, title, description, link, created_at FROM resources';
     $params = [];
 
-    // Optional search filter
     $search = isset($_GET['search']) ? trim($_GET['search']) : null;
     if ($search !== null && $search !== '') {
         $sql .= ' WHERE title LIKE :search OR description LIKE :search';
         $params[':search'] = '%' . $search . '%';
     }
 
-    // Validate sort field
     $allowedSort = ['title', 'created_at'];
     $sort = isset($_GET['sort']) && in_array($_GET['sort'], $allowedSort)
         ? $_GET['sort']
         : 'created_at';
 
-    // Validate sort order
     $allowedOrder = ['asc', 'desc'];
     $order = isset($_GET['order']) && in_array(strtolower($_GET['order']), $allowedOrder)
         ? strtolower($_GET['order'])
@@ -66,10 +61,8 @@ function getAllResources($db) {
 
     $stmt = $db->prepare($sql);
 
-    if (!empty($params)) {
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
-        }
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
     }
 
     $stmt->execute();
@@ -137,18 +130,16 @@ function updateResource($db, $data) {
 
     $resourceId = (int) $data['id'];
 
-    // Check the resource exists
     $check = $db->prepare('SELECT id FROM resources WHERE id = ?');
     $check->execute([$resourceId]);
     if (!$check->fetch()) {
         sendResponse(['success' => false, 'message' => 'Resource not found.'], 404);
     }
 
-    // Build dynamic SET clause from whichever fields were supplied
     $fields = [];
     $values = [];
 
-    if (isset($data['title']) && $data['title'] !== '') {
+    if (isset($data['title']) && trim($data['title']) !== '') {
         $fields[] = 'title = ?';
         $values[] = sanitizeInput($data['title']);
     }
@@ -156,7 +147,7 @@ function updateResource($db, $data) {
         $fields[] = 'description = ?';
         $values[] = sanitizeInput($data['description']);
     }
-    if (isset($data['link']) && $data['link'] !== '') {
+    if (isset($data['link']) && trim($data['link']) !== '') {
         $link = sanitizeInput($data['link']);
         if (!validateUrl($link)) {
             sendResponse(['success' => false, 'message' => 'The provided link is not a valid URL.'], 400);
@@ -221,7 +212,6 @@ function getCommentsByResourceId($db, $resourceId) {
     $stmt->execute([(int) $resourceId]);
     $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Always return an array — no comments is not an error
     sendResponse(['success' => true, 'data' => $comments]);
 }
 
@@ -239,7 +229,6 @@ function createComment($db, $data) {
 
     $resourceId = (int) $data['resource_id'];
 
-    // Verify the parent resource exists
     $check = $db->prepare('SELECT id FROM resources WHERE id = ?');
     $check->execute([$resourceId]);
     if (!$check->fetch()) {
@@ -308,10 +297,8 @@ try {
 
         if ($action === 'comments') {
             getCommentsByResourceId($db, $resourceId);
-
         } elseif ($id !== null) {
             getResourceById($db, $id);
-
         } else {
             getAllResources($db);
         }
@@ -356,38 +343,28 @@ try {
 
 function sendResponse($data, $statusCode = 200) {
     http_response_code($statusCode);
-
     if (!is_array($data)) {
         $data = ['success' => false, 'message' => (string) $data];
     }
-
     echo json_encode($data);
     exit;
 }
-
 
 function validateUrl($url) {
     return (bool) filter_var($url, FILTER_VALIDATE_URL);
 }
 
-
 function sanitizeInput($data) {
     return htmlspecialchars(strip_tags(trim($data)), ENT_QUOTES, 'UTF-8');
 }
 
-
 function validateRequiredFields($data, $requiredFields) {
     $missing = [];
-
     foreach ($requiredFields as $field) {
         if (!isset($data[$field]) || trim((string) $data[$field]) === '') {
             $missing[] = $field;
         }
     }
-
-    return [
-        'valid'   => count($missing) === 0,
-        'missing' => $missing
-    ];
+    return ['valid' => count($missing) === 0, 'missing' => $missing];
 }
 ?>
